@@ -81,20 +81,33 @@ export const Transcript: React.FC<TranscriptProps> = ({
             return <span key={idx}>{token.text}</span>;
           }
 
-          const isActive = token.wordIndex === currentWordIndex;
+          const isCurrent = token.wordIndex === currentWordIndex;
+          const isSpoken = token.wordIndex !== undefined && token.wordIndex < currentWordIndex;
 
-          if (isActive) {
+          if (isCurrent) {
             return (
               <span
                 key={idx}
-                className="font-black text-indigo-700 dark:text-cyan-300 bg-indigo-100/95 dark:bg-cyan-950/95 px-1.5 py-0.5 rounded-md ring-2 ring-indigo-400/80 dark:ring-cyan-400/80 shadow-md transition-all inline-block scale-105 mx-0.5"
+                className="font-black text-white bg-indigo-600 dark:bg-cyan-500 px-1.5 py-0.5 rounded-md ring-2 ring-indigo-400 dark:ring-cyan-300 shadow-md inline-block scale-105 transition-all duration-75 mx-0.5"
               >
                 {token.text}
               </span>
             );
           }
 
-          return <span key={idx}>{token.text}</span>;
+          if (isSpoken) {
+            return (
+              <span key={idx} className="font-semibold text-slate-900 dark:text-slate-100">
+                {token.text}
+              </span>
+            );
+          }
+
+          return (
+            <span key={idx} className="text-slate-500/90 dark:text-slate-400/80 font-normal">
+              {token.text}
+            </span>
+          );
         })}
       </p>
     );
@@ -266,42 +279,42 @@ export const Transcript: React.FC<TranscriptProps> = ({
 
       {/* Quick Voice / Next Question Action Bar directly beneath latest answer */}
       {messages.length > 0 && onToggleMic && botState !== 'thinking' && (
-        <div className="pt-2 sm:pt-3">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-indigo-50/90 via-white to-cyan-50/90 dark:from-slate-900/95 dark:via-slate-900 dark:to-cyan-950/40 border border-indigo-200/80 dark:border-indigo-500/20 shadow-sm transition-all">
-            <div className="flex items-center space-x-2 text-xs text-slate-700 dark:text-slate-300">
-              <Sparkles className="w-4 h-4 text-amber-500 dark:text-cyan-400 flex-shrink-0" />
-              <span className="font-medium">
+        <div className="pt-1.5 sm:pt-2.5">
+          <div className="flex items-center justify-between gap-2 p-2 sm:p-2.5 rounded-xl bg-gradient-to-r from-indigo-50/90 via-white to-cyan-50/90 dark:from-slate-900/95 dark:via-slate-900 dark:to-cyan-950/40 border border-indigo-200/80 dark:border-indigo-500/20 shadow-sm transition-all text-xs">
+            <div className="flex items-center space-x-1.5 min-w-0">
+              <Sparkles className="w-3.5 h-3.5 text-amber-500 dark:text-cyan-400 flex-shrink-0" />
+              <span className="font-medium truncate text-[11px] sm:text-xs text-slate-700 dark:text-slate-300">
                 {botState === 'speaking'
-                  ? 'Dinakaran is speaking aloud...'
+                  ? 'Dinakaran is speaking...'
                   : botState === 'listening'
-                  ? 'Listening to you now! Speak your question...'
-                  : 'Ready for your next question! Ask via voice or type below.'}
+                  ? 'Listening to you now...'
+                  : 'Ready for next question!'}
               </span>
             </div>
 
             <button
               onClick={onToggleMic}
               disabled={!isMicSupported}
-              className={`w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-bold flex items-center justify-center space-x-2 transition-all cursor-pointer shadow-md ${
+              className={`px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold flex items-center justify-center space-x-1.5 transition-all cursor-pointer shadow-sm flex-shrink-0 ${
                 botState === 'listening'
-                  ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/30 ring-4 ring-rose-500/30 animate-pulse'
+                  ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/30 ring-2 ring-rose-500/30 animate-pulse'
                   : botState === 'speaking'
                   ? 'bg-cyan-600 hover:bg-cyan-700 text-white shadow-cyan-600/30'
-                  : 'bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white shadow-indigo-600/25 active:scale-95'
+                  : 'bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white shadow-indigo-600/25 active:scale-95'
               } disabled:opacity-40 disabled:cursor-not-allowed`}
               title={botState === 'listening' ? 'Click to stop listening' : 'Click to speak question'}
             >
               <Mic
-                className={`w-4 h-4 ${
+                className={`w-3.5 h-3.5 ${
                   botState === 'listening' ? 'animate-bounce text-white' : ''
                 }`}
               />
               <span>
                 {botState === 'listening'
-                  ? 'Stop Listening'
+                  ? 'Stop'
                   : botState === 'speaking'
-                  ? 'Interrupt & Speak'
-                  : '🎙️ Tap to Speak Next Question'}
+                  ? 'Interrupt'
+                  : 'Tap to Speak'}
               </span>
             </button>
           </div>
