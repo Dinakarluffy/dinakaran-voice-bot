@@ -17,6 +17,7 @@ import {
   Sun,
   Moon,
   Mic,
+  Sliders,
 } from 'lucide-react';
 
 export default function Home() {
@@ -31,6 +32,9 @@ export default function Home() {
   const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
   const [currentWordIndex, setCurrentWordIndex] = useState<number | null>(null);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [selectedVoiceName, setSelectedVoiceName] = useState<string>('');
+  const [showVoiceModal, setShowVoiceModal] = useState(false);
 
   const recognitionRef = useRef<any>(null);
   const synthRef = useRef<SpeechSynthesis | null>(null);
@@ -53,6 +57,30 @@ export default function Home() {
       }
 
       synthRef.current = window.speechSynthesis;
+
+      // Listen to voice changes dynamically across Android, iOS, Windows, Mac
+      const updateVoices = () => {
+        if (!synthRef.current) return;
+        const voices = synthRef.current.getVoices();
+        if (voices && voices.length > 0) {
+          setAvailableVoices(voices);
+          const savedVoiceName = localStorage.getItem('dinakaran_preferred_voice');
+          const voiceExists = voices.some((v) => v.name === savedVoiceName);
+          if (savedVoiceName && voiceExists) {
+            setSelectedVoiceName(savedVoiceName);
+          } else {
+            const best = selectMaleVoice(voices);
+            if (best) {
+              setSelectedVoiceName(best.name);
+            }
+          }
+        }
+      };
+
+      updateVoices();
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.onvoiceschanged = updateVoices;
+      }
 
       const SpeechRecognition =
         (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -90,85 +118,112 @@ export default function Home() {
     utteranceRef.current = null;
   };
 
+  // Explicit female keywords across desktop (Windows/Mac/iOS) and Android (Google/Samsung TTS)
+  const FEMALE_VOICE_PATTERNS = [
+    /female/i,
+    /woman/i,
+    /samantha/i,
+    /zira/i,
+    /victoria/i,
+    /karen/i,
+    /fiona/i,
+    /tessa/i,
+    /moira/i,
+    /veena/i,
+    /susan/i,
+    /catherine/i,
+    /hazel/i,
+    /jenny/i,
+    /aria/i,
+    /ava/i,
+    /emma/i,
+    /zoe/i,
+    /serena/i,
+    /heera/i,
+    /neerja/i,
+    /aditi/i,
+    // Google TTS Android female voice codes
+    /en-in-x-cxx/i,
+    /en-in-x-end/i,
+    /en-in-x-enc/i,
+    /en-us-x-sfg/i,
+    /en-us-x-tpd/i,
+    /en-us-x-tpc/i,
+    /en-gb-x-fis/i,
+    /en-au-x-afh/i,
+    /smt_en_us_f/i,
+  ];
+
+  // Explicit male keywords across desktop (Windows/Mac/iOS) and Android (Google/Samsung TTS)
+  const MALE_VOICE_PATTERNS = [
+    /male/i,
+    /david/i,
+    /mark/i,
+    /alex/i,
+    /daniel/i,
+    /george/i,
+    /rishi/i,
+    /prabhat/i,
+    /ravi/i,
+    /oliver/i,
+    /arthur/i,
+    /aaron/i,
+    /guy/i,
+    /james/i,
+    /fred/i,
+    /tom/i,
+    // Google TTS Android male voice codes
+    /en-in-x-ahp/i, // Google English India Male 1
+    /en-in-x-ena/i, // Google English India Male 2
+    /en-us-x-iom/i, // Google English US Male 1
+    /en-us-x-iol/i, // Google English US Male 2
+    /en-gb-x-rjs/i, // Google English UK Male 1
+    // Samsung TTS male voice codes
+    /smt_en_us_m/i,
+    /smt_en_gb_m/i,
+  ];
+
+  const isVoiceExplicitFemale = (v: SpeechSynthesisVoice): boolean => {
+    const str = `${v.name} ${v.voiceURI}`.toLowerCase();
+    return FEMALE_VOICE_PATTERNS.some((p) => p.test(str));
+  };
+
+  const isVoiceExplicitMale = (v: SpeechSynthesisVoice): boolean => {
+    const str = `${v.name} ${v.voiceURI}`.toLowerCase();
+    return MALE_VOICE_PATTERNS.some((p) => p.test(str)) && !isVoiceExplicitFemale(v);
+  };
+
   // Select a natural male voice across Android, Windows, Mac, and iOS
-  const selectMaleVoice = (voices: SpeechSynthesisVoice[]) => {
+  const selectMaleVoice = (voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | undefined => {
     if (!voices || voices.length === 0) return undefined;
 
     const englishVoices = voices.filter((v) => v.lang.startsWith('en'));
     const candidates = englishVoices.length > 0 ? englishVoices : voices;
 
-    const femaleKeywords = [
-      'female',
-      'woman',
-      'samantha',
-      'zira',
-      'victoria',
-      'karen',
-      'fiona',
-      'tessa',
-      'moira',
-      'veena',
-      'susan',
-      'catherine',
-      'hazel',
-      'jenny',
-      'aria',
-      'ava',
-      'emma',
-      'zoe',
-      'serena',
-      'heera',
-      'neerja',
-      'aditi',
-    ];
-
-    const isNotFemale = (v: SpeechSynthesisVoice) => {
-      const lower = v.name.toLowerCase();
-      return !femaleKeywords.some((fk) => lower.includes(fk));
-    };
-
-    const maleKeywords = [
-      'male',
-      'daniel',
-      'alex',
-      'david',
-      'mark',
-      'george',
-      'rishi',
-      'prabhat',
-      'ravi',
-      'oliver',
-      'arthur',
-      'aaron',
-      'guy',
-      'james',
-      'fred',
-      'tom',
-      'en-in-x-cxx#male',
-      'en-us-x-sfg#male',
-      'en-gb-x-rjs#male',
-    ];
-
-    // Priority 1: Explicitly named male English voice
-    const explicitMale = candidates.find(
-      (v) => maleKeywords.some((mk) => v.name.toLowerCase().includes(mk)) && isNotFemale(v)
+    // Priority 1: Indian English male voice (ideal for Dinakaran's persona)
+    const indianMale = candidates.find(
+      (v) => (v.lang === 'en-IN' || v.lang.startsWith('en-IN')) && isVoiceExplicitMale(v)
     );
-    if (explicitMale) return explicitMale;
+    if (indianMale) return indianMale;
 
-    // Priority 2: Indian English voice that is not female
-    const indianVoice = candidates.find(
-      (v) => (v.lang === 'en-IN' || v.lang.startsWith('en-IN')) && isNotFemale(v)
+    // Priority 2: Any English male voice (David, Mark, Daniel, Alex, iom, iol, rjs, etc.)
+    const anyMale = candidates.find(isVoiceExplicitMale);
+    if (anyMale) return anyMale;
+
+    // Priority 3: Indian English voice that is NOT explicitly female
+    const indianNonFemale = candidates.find(
+      (v) => (v.lang === 'en-IN' || v.lang.startsWith('en-IN')) && !isVoiceExplicitFemale(v)
     );
-    if (indianVoice) return indianVoice;
+    if (indianNonFemale) return indianNonFemale;
 
-    // Priority 3: Any English voice that is not female
-    const nonFemale = candidates.find(isNotFemale);
-    if (nonFemale) return nonFemale;
+    // Priority 4: Any English voice that is NOT explicitly female
+    const englishNonFemale = candidates.find((v) => !isVoiceExplicitFemale(v));
+    if (englishNonFemale) return englishNonFemale;
 
     return candidates[0];
   };
 
-  // Text-to-Speech function with Dual Karaoke Engine (onboundary + dynamic fallback timer)
+  // Text-to-Speech function with Dual Karaoke Engine (onboundary + calibrated speech timing)
   const speakText = (text: string, messageId?: string) => {
     if (isMuted || !synthRef.current) return;
 
@@ -186,41 +241,72 @@ export default function Home() {
     const utterance = new SpeechSynthesisUtterance(text);
     utteranceRef.current = utterance; // Retain reference to prevent V8 garbage collection!
     utterance.rate = speechRate;
-    utterance.pitch = 0.92; // Slightly deeper masculine pitch
 
     const voices = synthRef.current.getVoices();
-    const preferredVoice = selectMaleVoice(voices);
-    if (preferredVoice) {
-      utterance.voice = preferredVoice;
+    let chosenVoice: SpeechSynthesisVoice | undefined;
+
+    if (selectedVoiceName) {
+      chosenVoice = voices.find((v) => v.name === selectedVoiceName);
+    }
+    if (!chosenVoice) {
+      chosenVoice = selectMaleVoice(voices);
+      if (chosenVoice) {
+        setSelectedVoiceName(chosenVoice.name);
+      }
     }
 
-    let wordIdx = 0;
-    let receivedBoundary = false;
+    if (chosenVoice) {
+      utterance.voice = chosenVoice;
+    }
 
-    // Dynamic word-by-word stepping timer synchronized with real speech cadence
+    // Dynamic pitch:
+    // If the voice is a verified male voice, pitch = 0.94 (crisp, masculine).
+    // If the voice is unverified, generic, or an Android fallback voice, pitch = 0.78
+    // (pitch 0.78 shifts female/neutral voices down by ~4-5 semitones into a natural masculine baritone!).
+    const isKnownMale = chosenVoice ? isVoiceExplicitMale(chosenVoice) : false;
+    utterance.pitch = isKnownMale ? 0.94 : 0.78;
+
+    let wordIdx = 0;
+    let receivedWordBoundary = false;
+
+    // Dynamic word-by-word stepping timer calibrated to natural ~138 WPM speech
     const stepNextWord = () => {
       if (wordIdx >= words.length - 1) return;
       const currentWord = words[wordIdx];
-      let delay = Math.round(270 / speechRate);
+      let delay = 380; // Base duration per word for natural conversational pace (~138 WPM)
 
-      // Natural speech cadence adjustments
-      if (currentWord.endsWith(',') || currentWord.endsWith(';') || currentWord.endsWith(':')) {
-        delay += Math.round(80 / speechRate);
-      } else if (currentWord.endsWith('.') || currentWord.endsWith('!') || currentWord.endsWith('?')) {
-        delay += Math.round(160 / speechRate);
-      } else if (currentWord.length > 7) {
-        delay += Math.round(40 / speechRate);
-      } else if (currentWord.length <= 3) {
-        delay = Math.max(130, delay - Math.round(60 / speechRate));
+      // Numbers & Acronyms take longer to pronounce (e.g. 2026 -> twenty twenty-six, B.Tech -> B Tech)
+      if (/\d/.test(currentWord)) {
+        delay += 420;
+      } else if (/[A-Z]{2,}/.test(currentWord) || (currentWord.includes('.') && currentWord.length > 2)) {
+        delay += 260;
       }
 
+      // Syllables and length adjustments
+      if (currentWord.length <= 3) {
+        delay = Math.max(220, delay - 140);
+      } else if (currentWord.length >= 12) {
+        delay += 260;
+      } else if (currentWord.length >= 8) {
+        delay += 130;
+      }
+
+      // Punctuation pauses (emulating human and TTS cadence)
+      if (currentWord.endsWith(',') || currentWord.endsWith(';') || currentWord.endsWith(':') || currentWord.includes('—')) {
+        delay += 260;
+      } else if (currentWord.endsWith('.') || currentWord.endsWith('!') || currentWord.endsWith('?')) {
+        delay += 520;
+      }
+
+      const finalDelay = Math.round(delay / speechRate);
+
       wordTimerRef.current = setTimeout(() => {
-        if (!receivedBoundary) {
+        if (!receivedWordBoundary) {
           wordIdx++;
           setCurrentWordIndex(wordIdx);
           stepNextWord();
         }
-      }, delay);
+      }, finalDelay);
     };
 
     utterance.onstart = () => {
@@ -231,16 +317,30 @@ export default function Home() {
     };
 
     utterance.onboundary = (event: SpeechSynthesisEvent) => {
-      receivedBoundary = true;
-      if (event.charIndex !== undefined && event.charIndex >= 0) {
+      // If the browser natively emits word boundaries (like desktop Chrome, Safari, Edge)
+      if (event.name === 'word' || (!event.name && event.charIndex !== undefined && event.charIndex > 0)) {
+        receivedWordBoundary = true;
+        if (event.charIndex !== undefined && event.charIndex >= 0) {
+          let charAcc = 0;
+          for (let i = 0; i < words.length; i++) {
+            charAcc += words[i].length + 1;
+            if (charAcc > event.charIndex) {
+              wordIdx = i;
+              setCurrentWordIndex(i);
+              break;
+            }
+          }
+        }
+      } else if (event.name === 'sentence' && event.charIndex !== undefined) {
+        // Some mobile browsers emit sentence boundary! Resync wordIdx to sentence start
         let charAcc = 0;
         for (let i = 0; i < words.length; i++) {
-          charAcc += words[i].length + 1;
-          if (charAcc > event.charIndex) {
+          if (charAcc >= event.charIndex) {
             wordIdx = i;
             setCurrentWordIndex(i);
             break;
           }
+          charAcc += words[i].length + 1;
         }
       }
     };
@@ -430,6 +530,15 @@ export default function Home() {
               )}
             </button>
 
+            {/* Voice & Sound Settings Toggle */}
+            <button
+              onClick={() => setShowVoiceModal(true)}
+              className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
+              title="Voice & Speech Settings"
+            >
+              <Sliders className="w-4 h-4 text-indigo-600 dark:text-cyan-400" />
+            </button>
+
             {/* GitHub */}
             <a
               href="https://github.com/Dinakarluffy"
@@ -441,12 +550,12 @@ export default function Home() {
               <Github className="w-4 h-4" />
             </a>
 
-            {/* LeetCode */}
+            {/* LeetCode (hidden on mobile to prevent crowding, visible on tablet/desktop) */}
             <a
               href="https://leetcode.com/u/asta_dkn/"
               target="_blank"
               rel="noreferrer"
-              className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
+              className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all border border-transparent hover:border-slate-200 dark:hover:border-slate-700 hidden sm:flex"
               title="LeetCode (140+ solved | Rating 1507)"
             >
               <Code className="w-4 h-4" />
@@ -615,6 +724,106 @@ export default function Home() {
           </p>
         </div>
       </footer>
+
+      {/* Voice Synthesizer & Sound Settings Modal */}
+      {showVoiceModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center space-x-2">
+                <Sliders className="w-5 h-5 text-indigo-600 dark:text-cyan-400" />
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Voice & Speech Engine
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowVoiceModal(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3.5 text-xs sm:text-sm">
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Synthesizer Voice (Current: {selectedVoiceName || 'Auto-Detected Male'})
+                </label>
+                <select
+                  value={selectedVoiceName}
+                  onChange={(e) => {
+                    setSelectedVoiceName(e.target.value);
+                    localStorage.setItem('dinakaran_preferred_voice', e.target.value);
+                  }}
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 text-xs"
+                >
+                  {availableVoices.map((v) => {
+                    const isMale = isVoiceExplicitMale(v);
+                    const isFemale = isVoiceExplicitFemale(v);
+                    const tag = isMale
+                      ? ' [Male - Recommended]'
+                      : isFemale
+                      ? ' [Female]'
+                      : '';
+                    return (
+                      <option key={v.name} value={v.name}>
+                        {v.name} ({v.lang}){tag}
+                      </option>
+                    );
+                  })}
+                </select>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                  Default male acoustic modeling is automatically configured.
+                </p>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Speech Speed ({speechRate}x)
+                </label>
+                <div className="flex space-x-2">
+                  {[0.75, 1.0, 1.25].map((rate) => (
+                    <button
+                      key={rate}
+                      type="button"
+                      onClick={() => setSpeechRate(rate)}
+                      className={`flex-1 py-1.5 rounded-xl font-bold text-xs transition-all border cursor-pointer ${
+                        speechRate === rate
+                          ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-transparent hover:bg-slate-200 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      {rate}x
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center justify-between gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    speakText(
+                      'Good morning! I am Dinakaran S, a 2026 graduate engineer from SASTRA University.'
+                    );
+                  }}
+                  className="flex-1 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs flex items-center justify-center space-x-1.5 shadow-sm cursor-pointer"
+                >
+                  <Volume2 className="w-3.5 h-3.5" />
+                  <span>Preview Voice</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowVoiceModal(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 font-bold text-xs cursor-pointer"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

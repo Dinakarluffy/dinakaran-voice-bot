@@ -164,27 +164,27 @@ export const Transcript: React.FC<TranscriptProps> = ({
                     }`
               }`}
             >
-              {/* Header inside Bubble */}
-              <div className="flex items-center justify-between mb-1.5 space-x-3">
-                <div className="flex items-center space-x-1.5">
+              {/* Header inside Bubble - strictly single-line & responsive on all mobile screens */}
+              <div className="flex items-center justify-between mb-1.5 gap-2 min-w-0">
+                <div className="flex items-center space-x-1.5 min-w-0 flex-shrink">
                   <span
-                    className={`text-[11px] sm:text-xs font-bold ${
+                    className={`text-[11px] sm:text-xs font-bold whitespace-nowrap truncate ${
                       isUser
                         ? 'text-indigo-200'
-                        : 'text-slate-600 dark:text-slate-400'
+                        : 'text-slate-700 dark:text-slate-300'
                     }`}
                   >
                     {isUser ? 'You (Interviewer)' : 'Dinakaran S'}
                   </span>
                   {isSpeakingThis && (
-                    <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 text-[10px] font-bold border border-cyan-500/30">
+                    <span className="inline-flex items-center space-x-1 px-1.5 py-0.5 rounded-full bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 text-[10px] font-bold border border-cyan-500/30 whitespace-nowrap flex-shrink-0">
                       <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-ping" />
-                      <span>Speaking aloud</span>
+                      <span>Speaking</span>
                     </span>
                   )}
                 </div>
                 <span
-                  className={`text-[10px] ${
+                  className={`text-[10px] whitespace-nowrap flex-shrink-0 ${
                     isUser ? 'text-indigo-200/80' : 'text-slate-400 dark:text-slate-500'
                   }`}
                 >
@@ -197,11 +197,11 @@ export const Transcript: React.FC<TranscriptProps> = ({
 
               {/* Action Buttons for Bot Responses */}
               {!isUser && (
-                <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-1 flex-wrap">
                   {/* Play Audio Button (disabled/speaking-indicator while bot is speaking) */}
                   {isSpeakingThis ? (
                     <div
-                      className="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold text-cyan-700 dark:text-cyan-300 bg-cyan-100/70 dark:bg-cyan-950/70 border border-cyan-400/50 shadow-sm select-none cursor-default"
+                      className="flex items-center space-x-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-semibold text-cyan-700 dark:text-cyan-300 bg-cyan-100/70 dark:bg-cyan-950/70 border border-cyan-400/50 shadow-sm select-none cursor-default whitespace-nowrap"
                       title="Dinakaran is currently speaking this answer aloud"
                     >
                       <span className="flex space-x-0.5 items-end h-3">
@@ -215,7 +215,7 @@ export const Transcript: React.FC<TranscriptProps> = ({
                     <button
                       disabled={botState !== 'idle'}
                       onClick={() => onReplayAudio(msg.text, msg.id)}
-                      className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                      className={`flex items-center space-x-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-semibold transition-all whitespace-nowrap ${
                         botState !== 'idle'
                           ? 'opacity-40 cursor-not-allowed text-slate-400 dark:text-slate-600 border border-transparent'
                           : 'text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 hover:bg-cyan-50 dark:hover:bg-cyan-950/40 border border-transparent hover:border-cyan-300 dark:hover:border-cyan-500/30 cursor-pointer'
@@ -233,7 +233,7 @@ export const Transcript: React.FC<TranscriptProps> = ({
 
                   <button
                     onClick={() => handleCopy(msg.id, msg.text)}
-                    className="flex items-center space-x-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
+                    className="flex items-center space-x-1 px-2 sm:px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer whitespace-nowrap"
                     title="Copy Answer Text"
                   >
                     {copiedId === msg.id ? (
